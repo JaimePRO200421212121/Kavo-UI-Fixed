@@ -1,0 +1,32 @@
+local Services = {};
+
+Services.CoreGui = game:GetService("CoreGui");
+Services.Players = game:GetService("Players");
+Services.TextService = game:GetService("TextService");
+Services.UserInputService = game:GetService("UserInputService");
+Services.TweenService = game:GetService("TweenService");
+Services.HttpService = game:GetService("HttpService");
+Services.MarketplaceService = game:GetService("MarketplaceService");
+Services.RunService = game:GetService("RunService");
+Services.TeleportService = game:GetService("TeleportService");
+Services.StarterGui = game:GetService("StarterGui");
+Services.GuiService = game:GetService("GuiService");
+Services.Lighting = game:GetService("Lighting");
+Services.ContextActionService = game:GetService("ContextActionService");
+Services.NetworkClient = game:GetService("NetworkClient");
+Services.ReplicatedStorage = game:GetService("ReplicatedStorage");
+Services.GroupService = game:GetService("GroupService");
+Services.PathService = game:GetService("PathfindingService");
+Services.SoundService = game:GetService("SoundService");
+Services.Teams = game:GetService("Teams");
+Services.StarterPlayer = game:GetService("StarterPlayer");
+Services.InsertService = game:GetService("InsertService");
+Services.ChatService = game:GetService("Chat");
+Services.ProximityPromptService = game:GetService("ProximityPromptService");
+Services.StatsService = game:GetService("Stats");
+Services.MaterialService = game:GetService("MaterialService");
+Services.AvatarEditorService = game:GetService("AvatarEditorService");
+Services.TextChatService = game:GetService("TextChatService");
+Services.VirtualUser = game:GetService("VirtualUser");
+
+return Services;
