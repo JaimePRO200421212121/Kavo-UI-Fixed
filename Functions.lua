@@ -2,18 +2,8 @@ local Functions = {};
 
 local Services = loadstring(game:HttpGet("https://raw.githubusercontent.com/JaimePRO200421212121/Kavo-UI-Fixed/main/Services.lua"))();
 
-Functions.Variables = {
-    ["NoClipping"] = nil,
-    ["ESPColor"] = Color3.fromRGB(255, 255, 255),
-    ["ESPTransparency"] = 0.3,
-    ["ESPEnabled"] = false,
-    ["Flying"] = false,
-    ["QEFly"] = true,
-    ["FlySpeed"] = 1
-};
-
-local function getRoot(char)
-	local rootPart = char:FindFirstChild('HumanoidRootPart') or char:FindFirstChild('Torso') or char:FindFirstChild('UpperTorso');
+local function getRoot(character)
+	local rootPart = character:FindFirstChild('HumanoidRootPart') or character:FindFirstChild('Torso') or character:FindFirstChild('UpperTorso');
 	return rootPart;
 end
 
@@ -22,7 +12,26 @@ local function round(num, numDecimalPlaces)
 	return math.floor(num * mult + 0.5) / mult;
 end
 
-function Functions:ESP(plr)
+local function randomString()
+	local length = math.random(10, 20);
+	local array = {};
+	for i = 1, length do
+		array[i] = string.char(math.random(32, 126));
+	end
+	return table.concat(array);
+end
+
+local function NoclipLoop()
+	if Services.Players.LocalPlayer.Character ~= nil then
+		for _, child in pairs(Services.Players.LocalPlayer.Character:GetDescendants()) do
+			if child:IsA("BasePart") and child.CanCollide == true and child.Name ~= Functions.Variables.FloatName then
+				child.CanCollide = false;
+			end
+		end
+	end
+end
+
+local function PlayerESP(plr)
 	task.spawn(function()
 		for i,v in pairs(Services.CoreGui:GetChildren()) do
 			if v.Name == plr.Name .. '_ESP' then
@@ -45,7 +54,7 @@ function Functions:ESP(plr)
 					a.ZIndex = 10;
 					a.Size = n.Size;
 					a.Transparency = Functions.Variables.ESPTransparency;
-					a.Color = Functions.Variables.ESPColor;
+					a.Color = Functions.Variables.MultiESP and Functions.Variables.ESPColor or plr.TeamColor;
 				end
 			end
 			if plr.Character and plr.Character:FindFirstChild('Head') then
@@ -108,21 +117,173 @@ function Functions:ESP(plr)
 						espLoopFunc:Disconnect();
 					end
 				end
-				espLoopFunc = RunService.RenderStepped:Connect(espLoop);
+				espLoopFunc = Services.RunService.RenderStepped:Connect(espLoop);
 			end
 		end
 	end)
 end
 
+local function PlrFly()
+	repeat wait() until Services.Players.LocalPlayer and Services.Players.LocalPlayer.Character and getRoot(Services.Players.LocalPlayer.Character) and Services.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid");
+	repeat wait() until Mouse;
+	if flyKeyDown or flyKeyUp then
+		flyKeyDown:Disconnect();
+		flyKeyUp:Disconnect();
+	end
+
+	local T = getRoot(Services.Players.LocalPlayer.Character);
+	local CONTROL = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 };
+	local lCONTROL = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 };
+	local SPEED = 0;
+
+	local function PFly()
+		Functions.Variables.Flying = true;
+		local BG = Instance.new('BodyGyro');
+		local BV = Instance.new('BodyVelocity');
+		BG.P = 9e4;
+		BG.Parent = T;
+		BV.Parent = T;
+		BG.maxTorque = Vector3.new(9e9, 9e9, 9e9);
+		BG.cframe = T.CFrame;
+		BV.velocity = Vector3.new(0, 0, 0);
+		BV.maxForce = Vector3.new(9e9, 9e9, 9e9);
+		task.spawn(function()
+			repeat wait()
+				if Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then
+					Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').PlatformStand = true;
+				end
+				if CONTROL.L + CONTROL.R ~= 0 or CONTROL.F + CONTROL.B ~= 0 or CONTROL.Q + CONTROL.E ~= 0 then
+					SPEED = 50;
+				elseif not (CONTROL.L + CONTROL.R ~= 0 or CONTROL.F + CONTROL.B ~= 0 or CONTROL.Q + CONTROL.E ~= 0) and SPEED ~= 0 then
+					SPEED = 0;
+				end
+				if (CONTROL.L + CONTROL.R) ~= 0 or (CONTROL.F + CONTROL.B) ~= 0 or (CONTROL.Q + CONTROL.E) ~= 0 then
+					BV.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (CONTROL.F + CONTROL.B)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(CONTROL.L + CONTROL.R, (CONTROL.F + CONTROL.B + CONTROL.Q + CONTROL.E) * 0.2, 0).p) - workspace.CurrentCamera.CoordinateFrame.p)) * SPEED;
+					lCONTROL = { F = CONTROL.F, B = CONTROL.B, L = CONTROL.L, R = CONTROL.R };
+				elseif (CONTROL.L + CONTROL.R) == 0 and (CONTROL.F + CONTROL.B) == 0 and (CONTROL.Q + CONTROL.E) == 0 and SPEED ~= 0 then
+					BV.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (lCONTROL.F + lCONTROL.B)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(lCONTROL.L + lCONTROL.R, (lCONTROL.F + lCONTROL.B + CONTROL.Q + CONTROL.E) * 0.2, 0).p) - workspace.CurrentCamera.CoordinateFrame.p)) * SPEED;
+				else
+					BV.velocity = Vector3.new(0, 0, 0);
+				end
+				BG.cframe = workspace.CurrentCamera.CoordinateFrame;
+			until not Functions.Variables.Flying;
+			CONTROL = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 };
+			lCONTROL = { F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0 };
+			SPEED = 0;
+			BG:Destroy();,
+			BV:Destroy();
+			if Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then
+				Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').PlatformStand = false;
+			end
+		end)
+	end
+	flyKeyDown = Mouse.KeyDown:Connect(function(KEY)
+		if KEY:lower() == 'w' then
+			CONTROL.F = Functions.Variables.FlySpeed;
+		elseif KEY:lower() == 's' then
+			CONTROL.B = - Functions.Variables.FlySpeed;
+		elseif KEY:lower() == 'a' then
+			CONTROL.L = - Functions.Variables.FlySpeed;
+		elseif KEY:lower() == 'd' then 
+			CONTROL.R = Functions.Variables.FlySpeed;
+		elseif Functions.Variables.QEFly and KEY:lower() == 'e' then
+			CONTROL.Q = Functions.Variables.FlySpeed * 2;
+		elseif Functions.Variables.QEFly and KEY:lower() == 'q' then
+			CONTROL.E = -Functions.Variables.FlySpeed * 2;
+		end
+		pcall(function()
+			workspace.CurrentCamera.CameraType = Enum.CameraType.Track;
+		end);
+	end);
+	flyKeyUp = Mouse.KeyUp:Connect(function(KEY)
+		if KEY:lower() == 'w' then
+			CONTROL.F = 0;
+		elseif KEY:lower() == 's' then
+			CONTROL.B = 0;
+		elseif KEY:lower() == 'a' then
+			CONTROL.L = 0;
+		elseif KEY:lower() == 'd' then
+			CONTROL.R = 0;
+		elseif KEY:lower() == 'e' then
+			CONTROL.Q = 0;
+		elseif KEY:lower() == 'q' then
+			CONTROL.E = 0;
+		end
+	end);
+	PFly();
+end
+
+local function PlrUnFly()
+	Functions.Variables.Flying = false;
+	if flyKeyDown or flyKeyUp then
+		flyKeyDown:Disconnect();
+		flyKeyUp:Disconnect();
+	end
+	if Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then
+		Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').PlatformStand = false;
+	end
+	pcall(function()
+		workspace.CurrentCamera.CameraType = Enum.CameraType.Custom;
+	end);
+end
+
+Functions.Variables = {
+	["NoClipping"] = nil,
+    	["FloatName"] = randomString(),
+    	["ESPColor"] = Color3.fromRGB(255, 255, 255),
+    	["ESPTransparency"] = 0.3,
+	["MultiESP"] = false,
+    	["ESPEnabled"] = false,
+    	["Flying"] = false,
+    	["QEFly"] = true,
+    	["FlySpeed"] = 1
+};
+
+function Functions:NoClip()
+	Functions.Variables.NoClipping = Services.RunService.Stepped:Connect(NoclipLoop);
+end
+
+function Functions:UnNoClip()
+	if Functions.Variables.NoClipping then
+		Functions.Variables.NoClipping:Disconnect();
+	end
+end
+
+function Functions:SingleESP(plr)
+	Functions.Variables.ESPEnabled = true;
+	Functions.Variables.MultiESP = false;
+	if plr.Name ~= Services.Players.LocalPlayer.Name then
+		PlayerESP(plr);
+	end
+end
+
+function Functions:AllESP()
+	Functions.Variables.ESPEnabled = true;
+	Functions.Variables.MultiESP = true;
+	for i, v in pairs(Services.Players:GetPlayers()) do
+		if v.Name ~= Services.Players.LocalPlayer.Name then
+			PlayerESP(v);
+		end
+	end
+end
+
 function Functions:UnESP()
-    ESPenabled = false;
-	for i,c in pairs(COREGUI:GetChildren()) do
+	Functions.Variables.ESPEnabled = false;
+	for i, c in pairs(Services.CoreGui:GetChildren()) do
 		if string.sub(c.Name, -4) == '_ESP' then
 			c:Destroy();
 		end
 	end
 end
 
+function Functions:Fly()
+	PlrUnFly();
+	wait();
+	PlrFly();
+end
 
+function Functions:UnFly()
+	PlrUnFly();
+end
 
 return Functions;
