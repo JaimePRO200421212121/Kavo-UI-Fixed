@@ -319,7 +319,8 @@ Functions.Variables = {
 	["Floating"] = false,
     	["Flying"] = false,
     	["QEFly"] = true,
-    	["FlySpeed"] = 1
+    	["FlySpeed"] = 1,
+	["Mouse"] = Services.Players.LocalPlayer:GetMouse()
 };
 
 function Functions:NoClip()
