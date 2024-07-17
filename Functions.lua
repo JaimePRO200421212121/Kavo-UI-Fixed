@@ -125,10 +125,10 @@ end
 
 local function PlrFly()
 	repeat wait() until Services.Players.LocalPlayer and Services.Players.LocalPlayer.Character and getRoot(Services.Players.LocalPlayer.Character) and Services.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid");
-	repeat wait() until Mouse;
-	if flyKeyDown or flyKeyUp then
-		flyKeyDown:Disconnect();
-		flyKeyUp:Disconnect();
+	repeat wait() until Functions.Variables.Mouse;
+	if Functions.Variables.FlyKeyDown or Functions.Variables.FlyKeyUp then
+		Functions.Variables.FlyKeyDown:Disconnect();
+		Functions.Variables.FlyKeyUp:Disconnect();
 	end
 
 	local T = getRoot(Services.Players.LocalPlayer.Character);
@@ -177,7 +177,7 @@ local function PlrFly()
 			end
 		end)
 	end
-	flyKeyDown = Mouse.KeyDown:Connect(function(KEY)
+	Functions.Variables.FlyKeyDown = Functions.Variables.Mouse.KeyDown:Connect(function(KEY)
 		if KEY:lower() == 'w' then
 			CONTROL.F = Functions.Variables.FlySpeed;
 		elseif KEY:lower() == 's' then
@@ -195,7 +195,7 @@ local function PlrFly()
 			workspace.CurrentCamera.CameraType = Enum.CameraType.Track;
 		end);
 	end);
-	flyKeyUp = Mouse.KeyUp:Connect(function(KEY)
+	Functions.Variables.FlyKeyUp = Functions.Variables.Mouse.KeyUp:Connect(function(KEY)
 		if KEY:lower() == 'w' then
 			CONTROL.F = 0;
 		elseif KEY:lower() == 's' then
@@ -215,9 +215,9 @@ end
 
 local function PlrUnFly()
 	Functions.Variables.Flying = false;
-	if flyKeyDown or flyKeyUp then
-		flyKeyDown:Disconnect();
-		flyKeyUp:Disconnect();
+	if Functions.Variables.FlyKeyDown or Functions.Variables.FlyKeyUp then
+		Functions.Variables.FlyKeyDown:Disconnect();
+		Functions.Variables.FlyKeyUp:Disconnect();
 	end
 	if Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then
 		Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').PlatformStand = false;
@@ -227,13 +227,96 @@ local function PlrUnFly()
 	end);
 end
 
+local function PlayerFloat()
+	local pchar = Services.Players.LocalPlayer.Character;
+	if pchar and not pchar:FindFirstChild(Functions.Variables.FloatName) then
+		task.spawn(function()
+			local Float = Instance.new('Part');
+			Float.Name = Functions.Variables.FloatName;
+			Float.Parent = pchar;
+			Float.Transparency = 1;
+			Float.Size = Vector3.new(2, 0.2, 1.5);
+			Float.Anchored = true;
+			local FloatValue = -3.1;
+			Float.CFrame = getRoot(pchar).CFrame * CFrame.new(0, FloatValue, 0);
+			Functions.Variables.QUp = Functions.Variables.Mouse.KeyUp:Connect(function(KEY)
+				if KEY == 'q' then
+					FloatValue = FloatValue + 0.5;
+				end
+			end)
+			Functions.Variables.EUp = Functions.Variables.Mouse.KeyUp:Connect(function(KEY)
+				if KEY == 'e' then
+					FloatValue = FloatValue - 0.5;
+				end
+			end);
+			Functions.Variables.QDown = Functions.Variables.Mouse.KeyDown:Connect(function(KEY)
+				if KEY == 'q' then
+					FloatValue = FloatValue - 0.5;
+				end
+			end);
+			Functions.Variables.EDown = Functions.Variables.Mouse.KeyDown:Connect(function(KEY)
+				if KEY == 'e' then
+					FloatValue = FloatValue + 0.5;
+				end
+			end);
+			Functions.Variables.FloatDied = Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').Died:Connect(function()
+				Functions.Variables.FloatingFunc:Disconnect();
+				Float:Destroy();
+				Functions.Variables.QUp:Disconnect();
+				Functions.Variables.EUp:Disconnect();
+				Functions.Variables.QDown:Disconnect();
+				Functions.Variables.EDown:Disconnect();
+				Functions.Variables.FloatDied:Disconnect();
+			end);
+			local function FloatPadLoop()
+				if pchar:FindFirstChild(Functions.Variables.FloatName) and getRoot(pchar) then
+					Float.CFrame = getRoot(pchar).CFrame * CFrame.new(0, FloatValue, 0);
+				else
+					Functions.Variables.FloatingFunc:Disconnect();
+					Float:Destroy();
+					Functions.Variables.QUp:Disconnect();
+					Functions.Variables.WUp:Disconnect();
+					Functions.Variables.QDown:Disconnect();
+					Functions.Variables.EDown:Disconnect();
+					Functions.Variables.FloatDied:Disconnect();
+				end
+			end			
+			Functions.Variables.FloatingFunc = Services.RunService.Heartbeat:Connect(FloatPadLoop);
+		end)
+	end
+end
+
+local function PlayerUnFloat()
+	local pchar = Services.Players.LocalPlayer.Character;
+	if pchar:FindFirstChild(Functions.Variables.FloatName) then
+		pchar:FindFirstChild(Functions.Variables.FloatName):Destroy();
+	end
+	if Functions.Variables.FloatDied then
+		Functions.Variables.FloatingFunc:Disconnect();
+		Functions.Variables.QUp:Disconnect();
+		Functions.Variables.EUp:Disconnect();
+		Functions.Variables.QDown:Disconnect();
+		Functions.Variables.EDown:Disconnect();
+		Functions.Variables.FloatDied:Disconnect();
+	end
+end
+
 Functions.Variables = {
 	["NoClipping"] = nil,
+	["FlyKeyUp"] = nil,
+	["FlyKeyDown"] = nil,
+	["FloatDied"] = nil,
+	["FloatingFunc"] = nil,
+	["QUp"] = nil,
+	["EUp"] = nil,
+	["QDown"] = nil,
+	["EDown"] = nil,
     	["FloatName"] = randomString(),
     	["ESPColor"] = Color3.fromRGB(255, 255, 255),
     	["ESPTransparency"] = 0.3,
 	["MultiESP"] = false,
     	["ESPEnabled"] = false,
+	["Floating"] = false,
     	["Flying"] = false,
     	["QEFly"] = true,
     	["FlySpeed"] = 1
@@ -284,6 +367,16 @@ end
 
 function Functions:UnFly()
 	PlrUnFly();
+end
+
+function Functions:Float()
+	Functions.Variables.Floating = true;
+	PlayerFloat();
+end
+
+function Functions:UnFloat()
+	Functions.Variables.Floating = false;
+	PlayerUnFloat();
 end
 
 return Functions;
