@@ -2,17 +2,237 @@ local Functions = {};
 
 local Services = loadstring(game:HttpGet("https://raw.githubusercontent.com/JaimePRO200421212121/Kavo-UI-Fixed/main/Services.lua"))();
 
-local function getRoot(character)
+local SpecialPlayerCases = {
+	["all"] = function(speaker) return Players:GetPlayers() end,
+	["others"] = function(speaker)
+		local plrs = {}
+		for i,v in pairs(Players:GetPlayers()) do
+			if v ~= speaker then
+				table.insert(plrs,v)
+			end
+		end
+		return plrs
+	end,
+	["me"] = function(speaker)return {speaker} end,
+	["#(%d+)"] = function(speaker,args,currentList)
+		local returns = {}
+		local randAmount = tonumber(args[1])
+		local players = {unpack(currentList)}
+		for i = 1,randAmount do
+			if #players == 0 then break end
+			local randIndex = math.random(1,#players)
+			table.insert(returns,players[randIndex])
+			table.remove(players,randIndex)
+		end
+		return returns
+	end,
+	["random"] = function(speaker,args,currentList)
+		local players = Players:GetPlayers()
+		local localplayer = Players.LocalPlayer
+		table.remove(players, table.find(players, localplayer))
+		return {players[math.random(1,#players)]}
+	end,
+	["%%(.+)"] = function(speaker,args)
+		local returns = {}
+		local team = args[1]
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Team and string.sub(string.lower(plr.Team.Name),1,#team) == string.lower(team) then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["allies"] = function(speaker)
+		local returns = {}
+		local team = speaker.Team
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Team == team then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["enemies"] = function(speaker)
+		local returns = {}
+		local team = speaker.Team
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Team ~= team then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["team"] = function(speaker)
+		local returns = {}
+		local team = speaker.Team
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Team == team then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["nonteam"] = function(speaker)
+		local returns = {}
+		local team = speaker.Team
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Team ~= team then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["friends"] = function(speaker,args)
+		local returns = {}
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr:IsFriendsWith(speaker.UserId) and plr ~= speaker then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["nonfriends"] = function(speaker,args)
+		local returns = {}
+		for _,plr in pairs(Players:GetPlayers()) do
+			if not plr:IsFriendsWith(speaker.UserId) and plr ~= speaker then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["guests"] = function(speaker,args)
+		local returns = {}
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Guest then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["bacons"] = function(speaker,args)
+		local returns = {}
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Character:FindFirstChild('Pal Hair') or plr.Character:FindFirstChild('Kate Hair') then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["age(%d+)"] = function(speaker,args)
+		local returns = {}
+		local age = tonumber(args[1])
+		if not age == nil then return end
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.AccountAge <= age then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["nearest"] = function(speaker,args,currentList)
+		local speakerChar = speaker.Character
+		if not speakerChar or not getRoot(speakerChar) then return end
+		local lowest = math.huge
+		local NearestPlayer = nil
+		for _,plr in pairs(currentList) do
+			if plr ~= speaker and plr.Character then
+				local distance = plr:DistanceFromCharacter(getRoot(speakerChar).Position)
+				if distance < lowest then
+					lowest = distance
+					NearestPlayer = {plr}
+				end
+			end
+		end
+		return NearestPlayer
+	end,
+	["farthest"] = function(speaker,args,currentList)
+		local speakerChar = speaker.Character
+		if not speakerChar or not getRoot(speakerChar) then return end
+		local highest = 0
+		local Farthest = nil
+		for _,plr in pairs(currentList) do
+			if plr ~= speaker and plr.Character then
+				local distance = plr:DistanceFromCharacter(getRoot(speakerChar).Position)
+				if distance > highest then
+					highest = distance
+					Farthest = {plr}
+				end
+			end
+		end
+		return Farthest
+	end,
+	["group(%d+)"] = function(speaker,args)
+		local returns = {}
+		local groupID = tonumber(args[1])
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr:IsInGroup(groupID) then  
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["alive"] = function(speaker,args)
+		local returns = {}
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["dead"] = function(speaker,args)
+		local returns = {}
+		for _,plr in pairs(Players:GetPlayers()) do
+			if (not plr.Character or not plr.Character:FindFirstChildOfClass("Humanoid")) or plr.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then
+				table.insert(returns,plr)
+			end
+		end
+		return returns
+	end,
+	["rad(%d+)"] = function(speaker,args)
+		local returns = {}
+		local radius = tonumber(args[1])
+		local speakerChar = speaker.Character
+		if not speakerChar or not getRoot(speakerChar) then return end
+		for _,plr in pairs(Players:GetPlayers()) do
+			if plr.Character and getRoot(plr.Character) then
+				local magnitude = (getRoot(plr.Character).Position-getRoot(speakerChar).Position).magnitude
+				if magnitude <= radius then table.insert(returns,plr) end
+			end
+		end
+		return returns
+	end,
+	["cursor"] = function(speaker)
+		local plrs = {}
+		local v = GetClosestPlayerFromCursor()
+		if v ~= nil then table.insert(plrs, v) end
+		return plrs
+	end,
+	["npcs"] = function(speaker,args)
+		local returns = {}
+		for _, v in pairs(workspace:GetDescendants()) do
+			if v:IsA("Model") and getRoot(v) and v:FindFirstChildWhichIsA("Humanoid") and Players:GetPlayerFromCharacter(v) == nil then
+				local clone = Instance.new("Player")
+				clone.Name = v.Name .. " - " .. v:FindFirstChildWhichIsA("Humanoid").DisplayName
+				clone.Character = v
+				table.insert(returns, clone)
+			end
+		end
+		return returns
+	end,
+};
+
+local function GetRoot(character)
 	local rootPart = character:FindFirstChild('HumanoidRootPart') or character:FindFirstChild('Torso') or character:FindFirstChild('UpperTorso');
 	return rootPart;
 end
 
-local function round(num, numDecimalPlaces)
+local function Round(num, numDecimalPlaces)
 	local mult = 10 ^ (numDecimalPlaces or 0);
 	return math.floor(num * mult + 0.5) / mult;
 end
 
-local function randomString()
+local function RandomString()
 	local length = math.random(10, 20);
 	local array = {};
 	for i = 1, length do
@@ -21,7 +241,98 @@ local function randomString()
 	return table.concat(array);
 end
 
-local function NoclipLoop()
+function splitString(str,delim)
+	local broken = {}
+	if delim == nil then delim = "," end
+	for w in string.gmatch(str,"[^"..delim.."]+") do
+		table.insert(broken,w)
+	end
+	return broken
+end
+
+function ToTokens(str)
+	local tokens = {}
+	for op,name in string.gmatch(str,"([+-])([^+-]+)") do
+		table.insert(tokens,{Operator = op,Name = name})
+	end
+	return tokens
+end
+
+function OnlyIncludeInTable(tab,matches)
+	local matchTable = {}
+	local resultTable = {}
+	for i,v in pairs(matches) do matchTable[v.Name] = true end
+	for i,v in pairs(tab) do if matchTable[v.Name] then table.insert(resultTable,v) end end
+	return resultTable
+end
+
+function RemoveTableMatches(tab,matches)
+	local matchTable = {}
+	local resultTable = {}
+	for i,v in pairs(matches) do matchTable[v.Name] = true end
+	for i,v in pairs(tab) do if not matchTable[v.Name] then table.insert(resultTable,v) end end
+	return resultTable
+end
+
+function GetPlayer(list)
+	if list == nil then
+		return { Services.Players.LocalPlayer.Name };
+	end
+	local nameList = splitString(list, ",");
+
+	local foundList = {};
+
+	for _, name in pairs(nameList) do
+		if string.sub(name, 1, 1) ~= "+" and string.sub(name, 1, 1) ~= "-" then
+			name = "+" .. name;
+		end
+		local tokens = toTokens(name);
+		local initialPlayers = Services.Players:GetPlayers();
+
+		for i,v in pairs(tokens) do
+			if v.Operator == "+" then
+				local tokenContent = v.Name;
+				local foundCase = false;
+				for regex, case in pairs(SpecialPlayerCases) do
+					local matches = { string.match(tokenContent, "^" .. regex .. "$") };
+					if #matches > 0 then
+						foundCase = true;
+						initialPlayers = onlyIncludeInTable(initialPlayers, case(speaker, matches, initialPlayers));
+					end
+				end
+				if not foundCase then
+					initialPlayers = onlyIncludeInTable(initialPlayers, getPlayersByName(tokenContent));
+				end
+			else
+				local tokenContent = v.Name;
+				local foundCase = false;
+				for regex, case in pairs(SpecialPlayerCases) do
+					local matches = { string.match(tokenContent, "^" .. regex .. "$") };
+					if #matches > 0 then
+						foundCase = true;
+						initialPlayers = removeTableMatches(initialPlayers, case(speaker, matches, initialPlayers));
+					end
+				end
+				if not foundCase then
+					initialPlayers = removeTableMatches(initialPlayers, getPlayersByName(tokenContent));
+				end
+			end
+		end
+
+		for i, v in pairs(initialPlayers) do
+			table.insert(foundList, v);
+		end
+	end
+
+	local foundNames = {};
+	for i, v in pairs(foundList) do
+		table.insert(foundNames, v.Name);
+	end
+
+	return foundNames;
+end
+
+local function NoClipLoop()
 	if Services.Players.LocalPlayer.Character ~= nil then
 		for _, child in pairs(Services.Players.LocalPlayer.Character:GetDescendants()) do
 			if child:IsA("BasePart") and child.CanCollide == true and child.Name ~= Functions.Variables.FloatName then
@@ -38,12 +349,12 @@ local function PlayerESP(plr)
 				v:Destroy();
 			end
 		end
-		wait();
+		task.wait();
 		if plr.Character and plr.Name ~= Services.Players.LocalPlayer.Name and not Services.CoreGui:FindFirstChild(plr.Name .. '_ESP') then
 			local ESPholder = Instance.new("Folder");
 			ESPholder.Name = plr.Name .. '_ESP';
 			ESPholder.Parent = Services.CoreGui;
-			repeat wait(1) until plr.Character and getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid");
+			repeat task.wait(1) until plr.Character and getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid");
 			for b, n in pairs (plr.Character:GetChildren()) do
 				if (n:IsA("BasePart")) then
 					local a = Instance.new("BoxHandleAdornment");
@@ -85,7 +396,7 @@ local function PlayerESP(plr)
 						espLoopFunc:Disconnect();
 						teamChange:Disconnect();
 						ESPholder:Destroy();
-						repeat wait(1) until getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid");
+						repeat task.wait(1) until getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid");
 						ESP(plr);
 						addedFunc:Disconnect();
 					else
@@ -98,7 +409,7 @@ local function PlayerESP(plr)
 						espLoopFunc:Disconnect();
 						addedFunc:Disconnect();
 						ESPholder:Destroy();
-						repeat wait(1) until getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid");
+						repeat task.wait(1) until getRoot(plr.Character) and plr.Character:FindFirstChildOfClass("Humanoid");
 						ESP(plr);
 						teamChange:Disconnect();
 					else
@@ -124,8 +435,8 @@ local function PlayerESP(plr)
 end
 
 local function PlrFly()
-	repeat wait() until Services.Players.LocalPlayer and Services.Players.LocalPlayer.Character and getRoot(Services.Players.LocalPlayer.Character) and Services.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid");
-	repeat wait() until Functions.Variables.Mouse;
+	repeat task.wait() until Services.Players.LocalPlayer and Services.Players.LocalPlayer.Character and getRoot(Services.Players.LocalPlayer.Character) and Services.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid");
+	repeat task.wait() until Functions.Variables.Mouse;
 	if Functions.Variables.FlyKeyDown or Functions.Variables.FlyKeyUp then
 		Functions.Variables.FlyKeyDown:Disconnect();
 		Functions.Variables.FlyKeyUp:Disconnect();
@@ -148,7 +459,7 @@ local function PlrFly()
 		BV.velocity = Vector3.new(0, 0, 0);
 		BV.maxForce = Vector3.new(9e9, 9e9, 9e9);
 		task.spawn(function()
-			repeat wait()
+			repeat task.wait()
 				if Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') then
 					Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').PlatformStand = true;
 				end
@@ -298,6 +609,16 @@ local function PlayerUnFloat()
 		Functions.Variables.QDown:Disconnect();
 		Functions.Variables.EDown:Disconnect();
 		Functions.Variables.FloatDied:Disconnect();
+	end
+end
+
+local function PlayerGoTo(plr)
+	if plr.Character ~= nil then
+		if Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid') and Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').SeatPart then
+			Services.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid').Sit = false;
+			task.wait(0.1);
+		end
+		getRoot(Services.Players.LocalPlayer.Character).CFrame = getRoot(plr.Character).CFrame + Vector3.new(3, 1, 0);
 	end
 end
 
